@@ -1,0 +1,33 @@
+﻿<div class="row justify-content-center">
+    <div class="col-12">
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Enter something..." value="@todoText" @oninput="(e) => todoTextChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty)">
+
+            <button class="btn btn-success" type="button" @onclick="HandleAddTask">
+                Add
+            </button>
+
+            <button class="btn btn-danger" type="button" @onclick="HandleClearTask">
+                Clear
+            </button>
+        </div>
+    </div>
+</div>
+@code{
+    [Parameter]
+    public string todoText { get; set; } = string.Empty;
+    [Parameter]
+    public EventCallback<string> todoTextChanged { get; set; }
+    [Parameter]
+    public EventCallback addTask { get; set; }
+    [Parameter]
+    public EventCallback clearTask { get; set; }
+    private async void HandleAddTask()
+    {
+        await addTask.InvokeAsync();
+    }
+    private async void HandleClearTask()
+    {
+        await clearTask.InvokeAsync();
+    }
+}

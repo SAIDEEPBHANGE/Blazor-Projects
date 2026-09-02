@@ -1,22 +1,91 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@using ToDoApp.Models
+
 <PageTitle>Home</PageTitle>
+
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+        <div class="col-12">
             <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
                 <div class="card-header bg-primary text-white text-center py-3">
                     To-Do Application
                 </div>
                 <div class="card-body p-4 p-sm-5 text-center">
-                    <ToDoTable />
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show mb-4 text-start" role="alert">
+                            @errorMessage
+                            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+                        </div>
+                    }
+
+                    <InputToDo @bind-todoText="todoText" addTask="@addTask" clearTask="@clearTask" />
+                    <ToDoTable todoItems="@todoItems" toDoTaskSummary="@toDoTaskSummary" />
                 </div>
-                <div class="card-footer d-flex justify-content-evenly">
-                    <span>Total</span>
-                    <span>Completed</span>
-                    <span>Pending</span>
+                <div class="card-footer">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="fw-bold fs-5">@toDoTaskSummary.Total</div>
+                            <small class="text-muted">Total</small>
+                        </div>
+
+                        <div class="col-4 border-start border-end">
+                            <div class="fw-bold fs-5 text-success">@toDoTaskSummary.Completed</div>
+                            <small class="text-muted">Completed</small>
+                        </div>
+
+                        <div class="col-4">
+                            <div class="fw-bold fs-5 text-warning">@toDoTaskSummary.Pending</div>
+                            <small class="text-muted">Pending</small>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    
 </div>
+
+@code {
+    private string todoText = string.Empty;
+    private string errorMessage = string.Empty;
+    private ToDoTasks todoItems = new ToDoTasks();
+    private ToDoTaskSummary toDoTaskSummary = new ToDoTaskSummary();
+
+    private void addTask()
+    {
+        errorMessage = string.Empty;
+        try
+        {
+            todoText = todoText?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(todoText))
+            {
+                throw new Exception("Type Something!");
+            }
+            bool isPresent = todoItems.tasks.Any(task => string.Equals(task.text, todoText, StringComparison.OrdinalIgnoreCase));
+            if (isPresent)
+            {
+                throw new Exception("This Task is Already Present!...");
+            }
+            todoItems.tasks.Add(new TodoTask
+            {
+                text = todoText,
+            });
+            todoText = string.Empty;
+            toDoTaskSummary.Total = todoItems.tasks.Count;
+            toDoTaskSummary.Completed = todoItems.tasks.Count(task => task.isDone);
+            toDoTaskSummary.Pending = toDoTaskSummary.Total - toDoTaskSummary.Completed;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private void clearTask()
+    {
+        todoText = string.Empty;
+        errorMessage = string.Empty;
+    }
+}
