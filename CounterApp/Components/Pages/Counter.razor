@@ -1,26 +1,20 @@
 ﻿@page "/"
 @rendermode InteractiveServer
-
 <PageTitle>Counter</PageTitle>
-
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-12 col-md-8 col-lg-6 col-xl-5">
             <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-
                 <!-- Header -->
                 <div class="card-header bg-primary text-white text-center py-3">
                     <h2 class="card-title h4 mb-0 fw-bold">Counter App</h2>
                 </div>
-
                 <div class="card-body p-4 p-sm-5 text-center">
-
                     <!-- Display Count -->
                     <div class="p-4 bg-light rounded-4 mb-4 border">
                         <span class="text-uppercase text-muted small fw-semibold d-block mb-1">Total Count</span>
                         <p role="status" class="display-2 fw-bold text-primary mb-0 font-monospace">@currentCount</p>
                     </div>
-
                     <!-- Input Controls -->
                     <div class="row g-3 mb-4 text-start">
                         <div class="col-12 col-sm-6">
@@ -31,7 +25,6 @@
                                        @bind="currentCount" @bind:event="oninput" />
                             </div>
                         </div>
-
                         <div class="col-12 col-sm-6">
                             <label class="form-label small fw-semibold text-secondary">Step Increment</label>
                             <div class="input-group">
@@ -41,13 +34,11 @@
                             </div>
                         </div>
                     </div>
-
                     <!-- Live Time Display -->
                     <div class="alert alert-light border d-flex flex-column flex-sm-row justify-content-between align-items-center py-2 px-3 mb-4 rounded-3 text-secondary small">
                         <span class="fw-semibold">System Time:</span>
                         <span class="font-monospace text-dark">@currTime</span>
                     </div>
-
                     <!-- Action Buttons -->
                     <div class="row g-2">
                         <div class="col-12 col-sm-4">
@@ -66,47 +57,37 @@
                             </button>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 @code {
     private int currentCount = 0;
     private int stepSize = 1;
-
     private void IncrementCount()
     {
         currentCount += stepSize;
     }
-
     private void DecrementCount()
     {
         currentCount = Math.Max(currentCount - stepSize, 0);
     }
-
     private void ResetCount()
     {
         currentCount = 0;
     }
-
     private Timer? uiTimer;
-
     private string currTime = DateTime.Now.ToString("dd MMM yyyy hh:mm:ss tt");
-
     protected override void OnInitialized()
     {
         uiTimer = new Timer(upDateTime, null, 0, 1000);
     }
-
     private void upDateTime(object? state)
     {
         currTime = DateTime.Now.ToString("dd MMM yyyy hh:mm:ss tt");
         InvokeAsync(StateHasChanged);
     }
-
     public void Dispose()
     {
         uiTimer?.Dispose();

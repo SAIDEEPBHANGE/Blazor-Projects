@@ -1,5 +1,4 @@
 ﻿@using ToDoApp.Models
-
 <div class="table-responsive mt-2">
     <table class="table table-hover table-bordered align-middle mb-0">
         <thead class="table-light">
@@ -9,7 +8,6 @@
                 <th class="text-center" style="width: 25%;">Actions</th>
             </tr>
         </thead>
-
         <tbody>
             @if (todoItems.tasks.Count == 0)
             {
@@ -24,10 +22,8 @@
                 @for (int i = 0; i < todoItems.tasks.Count; i++)
                 {
                     var task = todoItems.tasks[i];
-
                     <tr>
                         <td>@(i + 1)</td>
-
                         <td>
                             @if (task.isEdit)
                             {
@@ -42,7 +38,6 @@
                                 </span>
                             }
                         </td>
-
                         <td class="text-center">
                             @if (task.isEdit)
                             {
@@ -50,7 +45,6 @@
                                         @onclick="() => HandleEditTaskText(task.id)">
                                     Save Changes
                                 </button>
-
                                 <button class="btn btn-secondary btn-sm"
                                         @onclick="() => HandleCancelEditTask(task.id)">
                                     Cancel
@@ -69,8 +63,6 @@
                                         Edit
                                     </button>
                                 }
-
-
                                 <button class="btn btn-danger btn-sm"
                                         @onclick="() => HandleDeleteTask(task.id)">
                                     Delete
@@ -83,87 +75,66 @@
         </tbody>
     </table>
 </div>
-
 @code {
     [Parameter]
     public ToDoTasks todoItems { get; set; } = new();
-
     [Parameter]
     public ToDoTaskSummary toDoTaskSummary { get; set; } = new();
-
     private string originalTaskText = string.Empty;
-
     public Task HandleMarkAsCompleted(Guid taskId)
     {
         var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
-
         if (task != null)
         {
             task.isDone = true;
         }
-
         UpdateSummary();
         return Task.CompletedTask;
     }
-
     public Task HandleDeleteTask(Guid taskId)
     {
         var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
-
         if (task != null)
         {
             todoItems.tasks.Remove(task);
         }
-
         UpdateSummary();
         return Task.CompletedTask;
     }
-
     public Task HandleEditTask(Guid taskId)
     {
         var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
-
         if (task != null)
         {
             originalTaskText = task.text;
             task.isEdit = true;
         }
-
         return Task.CompletedTask;
     }
-
     public Task HandleEditTaskText(Guid taskId)
     {
         var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
-
         if (task != null)
         {
             task.text = task.text?.Trim() ?? string.Empty;
-
             if (string.IsNullOrWhiteSpace(task.text))
             {
                 task.text = originalTaskText;
             }
-
             task.isEdit = false;
         }
-
         return Task.CompletedTask;
     }
-
     public Task HandleCancelEditTask(Guid taskId)
     {
         var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
-
         if (task != null)
         {
             task.text = originalTaskText;
             task.isEdit = false;
         }
-
         return Task.CompletedTask;
     }
-
     private void UpdateSummary()
     {
         toDoTaskSummary.Total = todoItems.tasks.Count;

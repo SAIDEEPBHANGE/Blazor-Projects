@@ -1,13 +1,10 @@
 // Set up event handlers
 const reconnectModal = document.getElementById("components-reconnect-modal");
 reconnectModal.addEventListener("components-reconnect-state-changed", handleReconnectStateChanged);
-
 const retryButton = document.getElementById("components-reconnect-button");
 retryButton.addEventListener("click", retry);
-
 const resumeButton = document.getElementById("components-resume-button");
 resumeButton.addEventListener("click", resume);
-
 function handleReconnectStateChanged(event) {
     if (event.detail.state === "show") {
         reconnectModal.showModal();
@@ -19,10 +16,8 @@ function handleReconnectStateChanged(event) {
         location.reload();
     }
 }
-
 async function retry() {
     document.removeEventListener("visibilitychange", retryWhenDocumentBecomesVisible);
-
     try {
         // Reconnect will asynchronously return:
         // - true to mean success
@@ -44,7 +39,6 @@ async function retry() {
         document.addEventListener("visibilitychange", retryWhenDocumentBecomesVisible);
     }
 }
-
 async function resume() {
     try {
         const successful = await Blazor.resumeCircuit();
@@ -55,7 +49,6 @@ async function resume() {
         reconnectModal.classList.replace("components-reconnect-paused", "components-reconnect-resume-failed");
     }
 }
-
 async function retryWhenDocumentBecomesVisible() {
     if (document.visibilityState === "visible") {
         await retry();
