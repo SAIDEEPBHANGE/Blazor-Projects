@@ -1,4 +1,5 @@
 ﻿@using ToDoApp.Models
+
 <div class="table-responsive mt-2">
     <table class="table table-hover table-bordered align-middle mb-0">
         <thead class="table-light">
@@ -23,19 +24,58 @@
                 @for (int i = 0; i < todoItems.tasks.Count; i++)
                 {
                     var task = todoItems.tasks[i];
+
                     <tr>
-                        <td>@(i+1)</td>
-                        <td class="@(task.isDone ? "text-decoration-line-through" : "")">@task.text</td>
+                        <td>@(i + 1)</td>
+
+                        <td>
+                            @if (task.isEdit)
+                            {
+                                <input type="text"
+                                       class="form-control"
+                                       @bind="task.text" />
+                            }
+                            else
+                            {
+                                <span class="@(task.isDone ? "text-decoration-line-through" : "")">
+                                    @task.text
+                                </span>
+                            }
+                        </td>
+
                         <td class="text-center">
-                            @if (!task.isDone)
-                            {    
-                                <button class="btn btn-success btn-sm me-2" @onclick="@(() => HandleMarkAsCompleted(task.id))">
-                                    Mark as Completed
+                            @if (task.isEdit)
+                            {
+                                <button class="btn btn-success btn-sm me-2"
+                                        @onclick="() => HandleEditTaskText(task.id)">
+                                    Save Changes
+                                </button>
+
+                                <button class="btn btn-secondary btn-sm"
+                                        @onclick="() => HandleCancelEditTask(task.id)">
+                                    Cancel
                                 </button>
                             }
-                            <button class="btn btn-danger btn-sm" @onclick="@(() => HandleDeleteTask(task.id))">
-                                Delete
-                            </button>
+                            else
+                            {
+                                @if (!task.isDone)
+                                {
+                                    <button class="btn btn-success btn-sm me-2"
+                                            @onclick="() => HandleMarkAsCompleted(task.id)">
+                                        Mark as Completed
+                                    </button>
+                                    <button class="btn btn-primary btn-sm me-2"
+                                            @onclick="() => HandleEditTask(task.id)">
+                                        Edit
+                                    </button>
+                                }
+
+
+                                <button class="btn btn-danger btn-sm"
+                                        @onclick="() => HandleDeleteTask(task.id)">
+                                    Delete
+                                </button>
+                            }
                         </td>
                     </tr>
                 }
@@ -43,35 +83,92 @@
         </tbody>
     </table>
 </div>
-@code{
-    [Parameter]
-    public ToDoTasks todoItems { get; set; } = new ToDoTasks();
-    [Parameter]
-    public ToDoTaskSummary toDoTaskSummary { get; set; } = new ToDoTaskSummary();
 
-    private int rowId = 1;
+@code {
+    [Parameter]
+    public ToDoTasks todoItems { get; set; } = new();
 
-    public async void HandleMarkAsCompleted(Guid taskId)
+    [Parameter]
+    public ToDoTaskSummary toDoTaskSummary { get; set; } = new();
+
+    private string originalTaskText = string.Empty;
+
+    public Task HandleMarkAsCompleted(Guid taskId)
     {
         var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
+
         if (task != null)
         {
             task.isDone = true;
         }
-        toDoTaskSummary.Completed = todoItems.tasks.Count(t => t.isDone);
-        toDoTaskSummary.Pending = toDoTaskSummary.Total - toDoTaskSummary.Completed;
-        StateHasChanged();
+
+        UpdateSummary();
+        return Task.CompletedTask;
     }
-    public async void HandleDeleteTask(Guid taskId)
+
+    public Task HandleDeleteTask(Guid taskId)
     {
         var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
+
         if (task != null)
         {
             todoItems.tasks.Remove(task);
         }
+
+        UpdateSummary();
+        return Task.CompletedTask;
+    }
+
+    public Task HandleEditTask(Guid taskId)
+    {
+        var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
+
+        if (task != null)
+        {
+            originalTaskText = task.text;
+            task.isEdit = true;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task HandleEditTaskText(Guid taskId)
+    {
+        var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
+
+        if (task != null)
+        {
+            task.text = task.text?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(task.text))
+            {
+                task.text = originalTaskText;
+            }
+
+            task.isEdit = false;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task HandleCancelEditTask(Guid taskId)
+    {
+        var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
+
+        if (task != null)
+        {
+            task.text = originalTaskText;
+            task.isEdit = false;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void UpdateSummary()
+    {
         toDoTaskSummary.Total = todoItems.tasks.Count;
         toDoTaskSummary.Completed = todoItems.tasks.Count(t => t.isDone);
-        toDoTaskSummary.Pending = toDoTaskSummary.Total - toDoTaskSummary.Completed;
-        StateHasChanged();
+        toDoTaskSummary.Pending =
+            toDoTaskSummary.Total - toDoTaskSummary.Completed;
     }
 }

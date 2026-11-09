@@ -16,17 +16,22 @@
 @code{
     [Parameter]
     public string todoText { get; set; } = string.Empty;
+
     [Parameter]
     public EventCallback<string> todoTextChanged { get; set; }
+
     [Parameter]
     public EventCallback addTask { get; set; }
+
     [Parameter]
     public EventCallback clearTask { get; set; }
-    private async void HandleAddTask()
+
+    private async Task HandleAddTask()
     {
         await addTask.InvokeAsync();
     }
-    private async void HandleClearTask()
+
+    private async Task HandleClearTask()
     {
         await clearTask.InvokeAsync();
     }
