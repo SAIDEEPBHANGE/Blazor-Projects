@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="CounterApp/CounterApp.csproj" />
+  <Project Path="Student-Management-System/Student-Management-System.csproj" Id="730b0569-ecfd-41a7-82c7-a63b5aea43db" />
   <Project Path="ToDoApp/ToDoApp.csproj" Id="a5d220ac-2a8b-4474-9e2f-14e7d8d2f78f" />
 </Solution>
