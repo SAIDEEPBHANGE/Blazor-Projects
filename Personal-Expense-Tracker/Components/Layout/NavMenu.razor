@@ -1,0 +1,28 @@
+﻿@inject NavigationManager Navigation
+
+<MudAppBar Elevation="1" Color="Color.Primary">
+    <MudText Typo="Typo.h6" Class="ms-2">Personal Expense Tracker</MudText>
+    <MudSpacer />
+
+    <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/">Dashboard</MudButton>
+
+    <AuthorizeView>
+        <Authorized>
+            <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="LogoutAsync">Logout</MudButton>
+        </Authorized>
+        <NotAuthorized>
+            <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/login">Login</MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/register">Register</MudButton>
+        </NotAuthorized>
+    </AuthorizeView>
+</MudAppBar>
+
+@code {
+    private async Task LogoutAsync()
+    {
+        using var client = new HttpClient { BaseAddress = new Uri(Navigation.BaseUri) };
+        await client.PostAsync("auth/logout", null);
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}
+

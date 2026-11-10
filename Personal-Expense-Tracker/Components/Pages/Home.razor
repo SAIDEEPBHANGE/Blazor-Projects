@@ -1,0 +1,389 @@
+﻿@page "/"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IExpenseRepository ExpenseRepository
+@inject IExpenseFilterStateService FilterStateService
+@inject IJSRuntime JS
+
+<PageTitle>Personal Expense Tracker</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.h4">Personal Expense Tracker</MudText>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ExportCsvAsync" Disabled="@(!FilteredExpenses.Any())">Export CSV</MudButton>
+    </MudStack>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@errorMessage</MudAlert>
+    }
+
+    <MudGrid>
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-2">@(isEditMode ? "Edit Expense" : "Add Expense")</MudText>
+                <MudStack Spacing="2">
+                    <MudTextField T="string" Label="Title" Variant="Variant.Outlined" @bind-value="editModel.Title" />
+                    <MudNumericField T="decimal" Label="Amount" Variant="Variant.Outlined" @bind-value="editModel.Amount" Min="0.01m" Step="1" />
+                    <MudDatePicker Label="Date" Variant="Variant.Outlined" @bind-Date="editModel.ExpenseDate" Editable="true" />
+                    <MudSelect T="ExpenseCategory" Label="Category" Variant="Variant.Outlined" @bind-Value="editModel.Category">
+                        @foreach (var category in Categories)
+                        {
+                            <MudSelectItem T="ExpenseCategory" Value="@category">@category</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudTextField T="string" Label="Notes" Variant="Variant.Outlined" Lines="3" @bind-value="editModel.Notes" />
+
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveExpenseAsync">@(isEditMode ? "Update" : "Add")</MudButton>
+                        @if (isEditMode)
+                        {
+                            <MudButton Color="Color.Secondary" Variant="Variant.Outlined" OnClick="CancelEdit">Cancel</MudButton>
+                        }
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Class="pa-4 mt-3">
+                <MudText Typo="Typo.h6">Monthly Report</MudText>
+                <MudStack Spacing="1" Class="mt-2">
+                    <MudText>Income (Salary): @monthlyIncome.ToString("C")</MudText>
+                    <MudText>Expenses: @monthlyExpense.ToString("C")</MudText>
+                    <MudText Typo="Typo.subtitle1">Net: @monthlyNet.ToString("C")</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4 mb-3">
+                <MudGrid>
+                    <MudItem xs="12" md="4">
+                        <MudTextField T="string" Label="Search" Variant="Variant.Outlined" Value="searchTerm" ValueChanged="OnSearchChangedAsync" Immediate="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="string" Label="Category" Variant="Variant.Outlined" Value="selectedCategory" ValueChanged="OnCategoryChangedAsync">
+                            <MudSelectItem T="string" Value="@string.Empty">All</MudSelectItem>
+                            @foreach (var category in Categories)
+                            {
+                                <MudSelectItem T="string" Value="@category.ToString()">@category</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="6" md="2">
+                        <MudSelect T="int?" Label="Month" Variant="Variant.Outlined" Value="selectedMonth" ValueChanged="OnMonthChangedAsync">
+                            <MudSelectItem T="int?" Value="@((int?)null)">All</MudSelectItem>
+                            @for (var m = 1; m <= 12; m++)
+                            {
+                                <MudSelectItem T="int?" Value="@m">@m</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="6" md="2">
+                        <MudNumericField T="int?" Label="Year" Variant="Variant.Outlined" Min="2000" Max="2100" Value="selectedYear" ValueChanged="OnYearChangedAsync" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <MudPaper Class="pa-4 mb-3">
+                <MudChart ChartType="ChartType.Donut" Labels="@chartLabels" Data="@chartData" Width="100%" Height="300px" />
+            </MudPaper>
+
+            <MudPaper Class="pa-2">
+                <MudTable Items="FilteredExpenses" Dense="true" Hover="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Date</MudTh>
+                        <MudTh>Title</MudTh>
+                        <MudTh>Category</MudTh>
+                        <MudTh>Amount</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.ExpenseDate.ToString("yyyy-MM-dd")</MudTd>
+                        <MudTd>@context.Title</MudTd>
+                        <MudTd>@context.Category</MudTd>
+                        <MudTd>@context.Amount.ToString("C")</MudTd>
+                        <MudTd>
+                            <MudStack Row="true" Spacing="1">
+                                <MudIconButton Icon="edit" Color="Color.Primary" OnClick="@(() => StartEdit(context))" />
+                                <MudIconButton Icon="delete" Color="Color.Error" OnClick="@(() => DeleteExpenseAsync(context.Id))" />
+                            </MudStack>
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Class="pa-3">No expenses found.</MudText>
+                    </NoRecordsContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private static readonly ExpenseCategory[] Categories = Enum.GetValues<ExpenseCategory>();
+
+    private readonly List<Expense> expenses = [];
+    private List<Expense> filteredExpenses = [];
+    private ExpenseEditModel editModel = ExpenseEditModel.CreateDefault();
+
+    private bool isEditMode;
+    private int? editingExpenseId;
+    private string? userId;
+    private string? errorMessage;
+
+    private string searchTerm = string.Empty;
+    private string selectedCategory = string.Empty;
+    private int? selectedMonth = DateTime.Today.Month;
+    private int? selectedYear = DateTime.Today.Year;
+
+    private double[] chartData = [];
+    private string[] chartLabels = [];
+    private decimal monthlyIncome;
+    private decimal monthlyExpense;
+    private decimal monthlyNet;
+
+    private IEnumerable<Expense> FilteredExpenses => filteredExpenses;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            errorMessage = "Unable to determine signed-in user.";
+            return;
+        }
+
+        var filterState = await FilterStateService.LoadAsync();
+        searchTerm = filterState.SearchTerm ?? string.Empty;
+        selectedCategory = filterState.Category ?? string.Empty;
+        selectedMonth = filterState.Month;
+        selectedYear = filterState.Year;
+
+        if (!selectedMonth.HasValue)
+        {
+            selectedMonth = DateTime.Today.Month;
+        }
+
+        if (!selectedYear.HasValue)
+        {
+            selectedYear = DateTime.Today.Year;
+        }
+
+        await LoadExpensesAsync();
+    }
+
+    private async Task LoadExpensesAsync()
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return;
+        }
+
+        expenses.Clear();
+        expenses.AddRange(await ExpenseRepository.GetByUserAsync(userId));
+        RebuildView();
+    }
+
+    private async Task SaveExpenseAsync()
+    {
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            errorMessage = "You must be logged in.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(editModel.Title) || editModel.Amount <= 0)
+        {
+            errorMessage = "Title and amount are required.";
+            return;
+        }
+
+        if (isEditMode && editingExpenseId.HasValue)
+        {
+            var existing = await ExpenseRepository.GetByIdAsync(editingExpenseId.Value, userId);
+
+            if (existing is null)
+            {
+                errorMessage = "Expense not found.";
+                return;
+            }
+
+            existing.Title = editModel.Title.Trim();
+            existing.Amount = editModel.Amount;
+            existing.ExpenseDate = editModel.ExpenseDate?.Date ?? DateTime.Today;
+            existing.Category = editModel.Category;
+            existing.Notes = string.IsNullOrWhiteSpace(editModel.Notes) ? null : editModel.Notes.Trim();
+            await ExpenseRepository.UpdateAsync(existing);
+        }
+        else
+        {
+            await ExpenseRepository.AddAsync(new Expense
+            {
+                UserId = userId,
+                Title = editModel.Title.Trim(),
+                Amount = editModel.Amount,
+                ExpenseDate = editModel.ExpenseDate?.Date ?? DateTime.Today,
+                Category = editModel.Category,
+                Notes = string.IsNullOrWhiteSpace(editModel.Notes) ? null : editModel.Notes.Trim()
+            });
+        }
+
+        CancelEdit();
+        await LoadExpensesAsync();
+    }
+
+    private void StartEdit(Expense expense)
+    {
+        isEditMode = true;
+        editingExpenseId = expense.Id;
+        editModel = new ExpenseEditModel
+        {
+            Title = expense.Title,
+            Amount = expense.Amount,
+            ExpenseDate = expense.ExpenseDate,
+            Category = expense.Category,
+            Notes = expense.Notes
+        };
+    }
+
+    private void CancelEdit()
+    {
+        isEditMode = false;
+        editingExpenseId = null;
+        editModel = ExpenseEditModel.CreateDefault();
+    }
+
+    private async Task DeleteExpenseAsync(int id)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return;
+        }
+
+        await ExpenseRepository.DeleteAsync(id, userId);
+        await LoadExpensesAsync();
+    }
+
+    private Task OnSearchChangedAsync(string value)
+    {
+        searchTerm = value ?? string.Empty;
+        return ApplyFiltersAsync();
+    }
+
+    private Task OnCategoryChangedAsync(string value)
+    {
+        selectedCategory = value ?? string.Empty;
+        return ApplyFiltersAsync();
+    }
+
+    private Task OnMonthChangedAsync(int? value)
+    {
+        selectedMonth = value;
+        return ApplyFiltersAsync();
+    }
+
+    private Task OnYearChangedAsync(int? value)
+    {
+        selectedYear = value;
+        return ApplyFiltersAsync();
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        RebuildView();
+        await FilterStateService.SaveAsync(new ExpenseFilterState
+        {
+            SearchTerm = searchTerm,
+            Category = selectedCategory,
+            Month = selectedMonth,
+            Year = selectedYear
+        });
+    }
+
+    private void RebuildView()
+    {
+        IEnumerable<Expense> query = expenses;
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(x => x.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || (x.Notes != null && x.Notes.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedCategory) && Enum.TryParse<ExpenseCategory>(selectedCategory, out var parsedCategory))
+        {
+            query = query.Where(x => x.Category == parsedCategory);
+        }
+
+        if (selectedMonth.HasValue)
+        {
+            query = query.Where(x => x.ExpenseDate.Month == selectedMonth.Value);
+        }
+
+        if (selectedYear.HasValue)
+        {
+            query = query.Where(x => x.ExpenseDate.Year == selectedYear.Value);
+        }
+
+        filteredExpenses = query.OrderByDescending(x => x.ExpenseDate).ThenByDescending(x => x.Id).ToList();
+        BuildReportAndChart(filteredExpenses);
+    }
+
+    private void BuildReportAndChart(List<Expense> source)
+    {
+        monthlyIncome = source.Where(x => x.Category == ExpenseCategory.Salary).Sum(x => x.Amount);
+        monthlyExpense = source.Where(x => x.Category != ExpenseCategory.Salary).Sum(x => x.Amount);
+        monthlyNet = monthlyIncome - monthlyExpense;
+
+        var byCategory = source
+            .GroupBy(x => x.Category)
+            .Select(x => new { Category = x.Key.ToString(), Total = x.Sum(v => v.Amount) })
+            .OrderByDescending(x => x.Total)
+            .ToList();
+
+        chartLabels = byCategory.Select(x => x.Category).ToArray();
+        chartData = byCategory.Select(x => (double)x.Total).ToArray();
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        var rows = new List<string> { "Date,Title,Category,Amount,Notes" };
+
+        foreach (var item in FilteredExpenses)
+        {
+            rows.Add(string.Join(',',
+                EscapeCsv(item.ExpenseDate.ToString("yyyy-MM-dd")),
+                EscapeCsv(item.Title),
+                EscapeCsv(item.Category.ToString()),
+                EscapeCsv(item.Amount.ToString("0.00")),
+                EscapeCsv(item.Notes ?? string.Empty)));
+        }
+
+        var content = string.Join("\n", rows);
+        await JS.InvokeVoidAsync("expenseTracker.downloadCsv", $"expenses-{DateTime.Now:yyyyMMddHHmmss}.csv", content);
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+
+        return value;
+    }
+
+    private sealed class ExpenseEditModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public decimal Amount { get; set; } = 1;
+        public DateTime? ExpenseDate { get; set; } = DateTime.Today;
+        public ExpenseCategory Category { get; set; } = ExpenseCategory.Food;
+        public string? Notes { get; set; }
+
+        public static ExpenseEditModel CreateDefault() => new();
+    }
+}

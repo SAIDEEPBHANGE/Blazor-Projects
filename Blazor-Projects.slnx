@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="CounterApp/CounterApp.csproj" />
+  <Project Path="Personal-Expense-Tracker/Personal-Expense-Tracker.csproj" Id="f577aa79-0203-4fec-a6c5-37af8f02788f" />
   <Project Path="Student-Management-System/Student-Management-System.csproj" Id="730b0569-ecfd-41a7-82c7-a63b5aea43db" />
   <Project Path="ToDoApp/ToDoApp.csproj" Id="a5d220ac-2a8b-4474-9e2f-14e7d8d2f78f" />
   <Project Path="Weather-Dashboard/Weather-Dashboard.csproj" Id="9fd7fcf7-9f2e-4a2d-9164-35c940277fd2" />

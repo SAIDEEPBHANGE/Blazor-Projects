@@ -1,0 +1,70 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+
+<PageTitle>Login</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-10">
+    <MudPaper Class="pa-6">
+        <MudText Typo="Typo.h5" Class="mb-4">Sign in</MudText>
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@errorMessage</MudAlert>
+        }
+
+        <MudStack Spacing="2">
+            <MudTextField T="string" Label="Email" Variant="Variant.Outlined" @bind-value="email" />
+            <MudTextField T="string" Label="Password" InputType="InputType.Password" Variant="Variant.Outlined" @bind-value="password" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="isSubmitting" OnClick="LoginAsync">Login</MudButton>
+            <MudText Typo="Typo.body2">No account? <MudLink Href="/register">Register</MudLink></MudText>
+        </MudStack>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private bool isSubmitting;
+    private string? errorMessage;
+
+    private async Task LoginAsync()
+    {
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Email and password are required.";
+            return;
+        }
+
+        isSubmitting = true;
+
+        try
+        {
+            using var client = new HttpClient { BaseAddress = new Uri(Navigation.BaseUri) };
+            var response = await client.PostAsJsonAsync("auth/login?useCookies=true", new
+            {
+                Email = email.Trim(),
+                Password = password
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/", forceLoad: true);
+                return;
+            }
+
+            errorMessage = "Invalid login attempt.";
+        }
+        catch
+        {
+            errorMessage = "Unable to sign in right now.";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}

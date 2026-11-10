@@ -1,0 +1,86 @@
+@page "/register"
+@attribute [AllowAnonymous]
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+
+<PageTitle>Register</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-10">
+    <MudPaper Class="pa-6">
+        <MudText Typo="Typo.h5" Class="mb-4">Create account</MudText>
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@errorMessage</MudAlert>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(successMessage))
+        {
+            <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">@successMessage</MudAlert>
+        }
+
+        <MudStack Spacing="2">
+            <MudTextField T="string" Label="Email" Variant="Variant.Outlined" @bind-value="email" />
+            <MudTextField T="string" Label="Password" InputType="InputType.Password" Variant="Variant.Outlined" @bind-value="password" />
+            <MudTextField T="string" Label="Confirm Password" InputType="InputType.Password" Variant="Variant.Outlined" @bind-value="confirmPassword" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="isSubmitting" OnClick="RegisterAsync">Register</MudButton>
+            <MudText Typo="Typo.body2">Already have an account? <MudLink Href="/login">Login</MudLink></MudText>
+        </MudStack>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private string confirmPassword = string.Empty;
+    private bool isSubmitting;
+    private string? errorMessage;
+    private string? successMessage;
+
+    private async Task RegisterAsync()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Email and password are required.";
+            return;
+        }
+
+        if (!string.Equals(password, confirmPassword, StringComparison.Ordinal))
+        {
+            errorMessage = "Passwords do not match.";
+            return;
+        }
+
+        isSubmitting = true;
+
+        try
+        {
+            using var client = new HttpClient { BaseAddress = new Uri(Navigation.BaseUri) };
+            var response = await client.PostAsJsonAsync("auth/register", new
+            {
+                Email = email.Trim(),
+                Password = password
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = "Registration successful. You can now sign in.";
+                Navigation.NavigateTo("/login", forceLoad: true);
+                return;
+            }
+
+            errorMessage = "Registration failed. Try a different email or stronger password.";
+        }
+        catch
+        {
+            errorMessage = "Unable to register right now.";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}
