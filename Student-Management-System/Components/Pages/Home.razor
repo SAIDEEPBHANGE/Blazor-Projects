@@ -1,7 +1,190 @@
 ﻿@page "/"
-
+@using Student_Management_System.Models
+@using Student_Management_System.Enums
+@using MudBlazor
+@using System.Text
+@inject NavigationManager NavigationManager
 <PageTitle>Home</PageTitle>
-
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Student Management System</MudText>
+    <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudTextField T="string"
+                      Placeholder="Search by name or email..."
+                      @bind-Value="searchText"
+                      Immediate="true"
+                      Variant="Variant.Outlined"
+                      Class="flex-grow-1" />
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Success" OnClick="ExportCsv">Export CSV</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddStudent">+ Add Student</MudButton>
+        </MudStack>
+    </MudStack>
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="3">
+                <MudTextField T="string"
+                              Label="Name"
+                              Placeholder="Filter name"
+                              @bind-Value="nameFilter"
+                              Immediate="true"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="2">
+                <MudNumericField T="int?"
+                                 Label="Age"
+                                 Placeholder="Age"
+                                 @bind-Value="ageFilter"
+                                 Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudTextField T="string"
+                              Label="Email"
+                              Placeholder="Filter email"
+                              @bind-Value="emailFilter"
+                              Immediate="true"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudSelect T="StudentDep?"
+                           Label="Department"
+                           @bind-Value="departmentFilter"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem Value="@((StudentDep?)null)">All</MudSelectItem>
+                    @foreach (var department in Enum.GetValues<StudentDep>())
+                    {
+                        <MudSelectItem Value="@((StudentDep?)department)">@department</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="1" Class="d-flex align-end">
+                <MudButton Variant="Variant.Outlined" Color="Color.Default" FullWidth="true" OnClick="ClearFilters">Clear</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+    <StudentFormModal Show="showForm"
+                      IsEdit="isEdit"
+                      StudentModel="studentModel"
+                      OnSave="SaveStudent"
+                      OnCancel="Cancel" />
+    <MudTable Items="FilteredStudents" Dense="true" Hover="true" Striped="true" Bordered="true" RowsPerPage="pageSize">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Age</MudTh>
+            <MudTh>Email</MudTh>
+            <MudTh>Department</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Age">@context.Age</MudTd>
+            <MudTd DataLabel="Email">@context.Email</MudTd>
+            <MudTd DataLabel="Department">@context.Department</MudTd>
+            <MudTd DataLabel="Actions">
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Warning" OnClick="@((_) => EditStudent(context))">Edit</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Error" Class="ms-2" OnClick="@((_) => DeleteStudent(context))">Delete</MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="pageSizeOptions" />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+@code {
+    private StudentDataModel studentDataModel = new();
+    private string nameFilter = string.Empty;
+    private int? ageFilter;
+    private string emailFilter = string.Empty;
+    private StudentDep? departmentFilter;
+    private readonly int[] pageSizeOptions = [5, 10, 25, 100];
+    private int pageSize = 5;
+    private string searchText = string.Empty;
+    private bool showForm = false;
+    private bool isEdit = false;
+    private StudentInfo studentModel = new();
+    private IEnumerable<StudentInfo> FilteredStudents =>
+        studentDataModel.Students.Where(s =>
+            (string.IsNullOrWhiteSpace(searchText) ||
+             s.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+             s.Email.Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(nameFilter) ||
+             s.Name.Contains(nameFilter, StringComparison.OrdinalIgnoreCase)) &&
+            (!ageFilter.HasValue || s.Age == ageFilter.Value) &&
+            (string.IsNullOrWhiteSpace(emailFilter) ||
+             s.Email.Contains(emailFilter, StringComparison.OrdinalIgnoreCase)) &&
+            (!departmentFilter.HasValue || s.Department == departmentFilter.Value));
+    private void AddStudent()
+    {
+        studentModel = new StudentInfo();
+        isEdit = false;
+        showForm = true;
+    }
+    private void EditStudent(StudentInfo student)
+    {
+        studentModel = new StudentInfo
+        {
+            studentId = student.studentId,
+            Name = student.Name,
+            Age = student.Age,
+            Email = student.Email,
+            Department = student.Department
+        };
+        isEdit = true;
+        showForm = true;
+    }
+    private void SaveStudent()
+    {
+        if (isEdit)
+        {
+            var existingStudent = studentDataModel.Students.FirstOrDefault(
+                s => s.studentId == studentModel.studentId);
+            if (existingStudent != null)
+            {
+                existingStudent.Name = studentModel.Name;
+                existingStudent.Age = studentModel.Age;
+                existingStudent.Email = studentModel.Email;
+                existingStudent.Department = studentModel.Department;
+            }
+        }
+        else
+        {
+            studentDataModel.Students.Add(studentModel);
+        }
+        showForm = false;
+        studentModel = new StudentInfo();
+    }
+    private void DeleteStudent(StudentInfo student)
+    {
+        studentDataModel.Students.Remove(student);
+    }
+    private void Cancel()
+    {
+        showForm = false;
+    }
+    private void ClearFilters()
+    {
+        nameFilter = string.Empty;
+        ageFilter = null;
+        emailFilter = string.Empty;
+        departmentFilter = null;
+        searchText = string.Empty;
+    }
+    private void ExportCsv()
+    {
+        var csvBuilder = new StringBuilder();
+        csvBuilder.AppendLine("Name,Age,Email,Department");
+        foreach (var student in FilteredStudents)
+        {
+            csvBuilder.AppendLine($"{EscapeCsv(student.Name)},{student.Age},{EscapeCsv(student.Email)},{student.Department}");
+        }
+        var csvData = Uri.EscapeDataString(csvBuilder.ToString());
+        NavigationManager.NavigateTo($"data:text/csv;charset=utf-8,{csvData}", true);
+    }
+    private static string EscapeCsv(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r'))
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+        return value;
+    }
+}

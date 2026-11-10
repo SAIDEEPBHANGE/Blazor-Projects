@@ -1,0 +1,60 @@
+@using Student_Management_System.Models
+@using Student_Management_System.Enums
+@using MudBlazor
+@if (Show)
+{
+    <MudOverlay Visible="true" DarkBackground="true" AutoClose="false" ZIndex="1300">
+        <MudPaper Class="pa-6 mx-auto mt-12" Style="width:min(700px,95vw);">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+                <MudText Typo="Typo.h6">@(IsEdit ? "Edit Student" : "Add Student")</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(async _ => await OnCancel.InvokeAsync())" />
+            </MudStack>
+            <EditForm Model="StudentModel" OnValidSubmit="OnSave">
+                <DataAnnotationsValidator />
+                <MudStack Spacing="2">
+                    <MudTextField T="string"
+                                  Label="Name"
+                                  Variant="Variant.Outlined"
+                                  @bind-Value="StudentModel.Name"
+                                  For="@(() => StudentModel.Name)" />
+                    <MudNumericField T="int"
+                                     Label="Age"
+                                     Variant="Variant.Outlined"
+                                     @bind-Value="StudentModel.Age"
+                                     For="@(() => StudentModel.Age)" />
+                    <MudTextField T="string"
+                                  Label="Email"
+                                  Variant="Variant.Outlined"
+                                  @bind-Value="StudentModel.Email"
+                                  For="@(() => StudentModel.Email)" />
+                    <MudSelect T="StudentDep"
+                               Label="Department"
+                               Variant="Variant.Outlined"
+                               @bind-Value="StudentModel.Department">
+                        @foreach (var department in Enum.GetValues<StudentDep>())
+                        {
+                            <MudSelectItem Value="@department">@department</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <ValidationSummary />
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(async _ => await OnCancel.InvokeAsync())">Cancel</MudButton>
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Success">Save</MudButton>
+                    </MudStack>
+                </MudStack>
+            </EditForm>
+        </MudPaper>
+    </MudOverlay>
+}
+@code {
+    [Parameter]
+    public bool Show { get; set; }
+    [Parameter]
+    public bool IsEdit { get; set; }
+    [Parameter]
+    public StudentInfo StudentModel { get; set; } = new();
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+}
