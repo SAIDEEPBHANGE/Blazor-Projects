@@ -1,20 +1,16 @@
 ﻿@page "/"
 @rendermode InteractiveServer
 @inject Weather_Dashboard.Services.WeatherService WeatherService
-
 <PageTitle>Weather Dashboard</PageTitle>
-
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
     <MudPaper Class="pa-6" Elevation="2">
         <MudStack Spacing="3">
             <MudText Typo="Typo.h4">Weather Dashboard</MudText>
             <MudText Typo="Typo.body1" Color="Color.Secondary">Search for a city to view current weather.</MudText>
-
             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                 <MudTextField @bind-value="city" Label="City" Variant="Variant.Outlined" Placeholder="Enter city name" Immediate="true" Disabled="isLoading" FullWidth="true" />
                 <MudButton OnClick="SearchWeatherAsync" Variant="Variant.Filled" Color="Color.Primary" Disabled="isLoading">Search</MudButton>
             </MudStack>
-
             @if (isLoading)
             {
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -22,12 +18,10 @@
                     <MudText Typo="Typo.body1">Loading weather...</MudText>
                 </MudStack>
             }
-
             @if (!string.IsNullOrWhiteSpace(errorMessage))
             {
                 <MudAlert Severity="Severity.Error" Dense="true">@errorMessage</MudAlert>
             }
-
             @if (weather is not null)
             {
                 <MudPaper Class="pa-4" Outlined="true">
@@ -36,7 +30,6 @@
                             <MudIcon Icon="@GetWeatherIcon(weather.WeatherCode)" Size="Size.Large" Color="Color.Info" />
                             <MudText Typo="Typo.h5">@weather.City@(string.IsNullOrWhiteSpace(weather.Country) ? string.Empty : $", {weather.Country}")</MudText>
                         </MudStack>
-
                         <MudText Typo="Typo.h6">Temperature: @weather.Temperature.ToString("0.#")°C</MudText>
                         <MudText Typo="Typo.body1">Wind: @weather.WindSpeed.ToString("0.#") km/h</MudText>
                         <MudText Typo="Typo.body1">Humidity: @weather.Humidity%</MudText>
@@ -47,36 +40,29 @@
         </MudStack>
     </MudPaper>
 </MudContainer>
-
 @code {
     private string city = "";
     private Weather_Dashboard.Services.CurrentWeather? weather;
     private string? errorMessage;
     private bool isLoading;
-
     private async Task SearchWeatherAsync()
     {
         errorMessage = null;
         weather = null;
-
         if (string.IsNullOrWhiteSpace(city))
         {
             errorMessage = "Please enter a city name.";
             return;
         }
-
         isLoading = true;
-
         try
         {
             var result = await WeatherService.GetCurrentWeatherAsync(city.Trim());
-
             if (!result.IsSuccess)
             {
                 errorMessage = result.ErrorMessage;
                 return;
             }
-
             weather = result.Weather;
         }
         finally
@@ -84,7 +70,6 @@
             isLoading = false;
         }
     }
-
     private static string GetWeatherIcon(int weatherCode) => weatherCode switch
     {
         0 => "wb_sunny",

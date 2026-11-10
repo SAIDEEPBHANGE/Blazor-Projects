@@ -1,15 +1,12 @@
 .page {
     min-height: 100vh;
 }
-
 main {
     width: 100%;
 }
-
 .content {
     width: 100%;
 }
-
 #blazor-error-ui {
     color-scheme: light only;
     background: lightyellow;
@@ -23,7 +20,6 @@ main {
     width: 100%;
     z-index: 1000;
 }
-
     #blazor-error-ui .dismiss {
         cursor: pointer;
         position: absolute;
