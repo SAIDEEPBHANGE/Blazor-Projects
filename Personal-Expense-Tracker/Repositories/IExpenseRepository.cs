@@ -9,4 +9,5 @@ public interface IExpenseRepository
     Task AddAsync(Expense expense, CancellationToken cancellationToken = default);
     Task UpdateAsync(Expense expense, CancellationToken cancellationToken = default);
     Task DeleteAsync(int id, string userId, CancellationToken cancellationToken = default);
+    Task<bool> HasAnyForUserAsync(string userId, CancellationToken cancellationToken = default);
 }

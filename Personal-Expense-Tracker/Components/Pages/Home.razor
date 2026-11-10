@@ -1,8 +1,9 @@
-﻿@page "/"
+@page "/"
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IExpenseRepository ExpenseRepository
+@inject IExpenseCategoryRepository ExpenseCategoryRepository
 @inject IExpenseFilterStateService FilterStateService
 @inject IJSRuntime JS
 
@@ -27,10 +28,10 @@
                     <MudTextField T="string" Label="Title" Variant="Variant.Outlined" @bind-value="editModel.Title" />
                     <MudNumericField T="decimal" Label="Amount" Variant="Variant.Outlined" @bind-value="editModel.Amount" Min="0.01m" Step="1" />
                     <MudDatePicker Label="Date" Variant="Variant.Outlined" @bind-Date="editModel.ExpenseDate" Editable="true" />
-                    <MudSelect T="ExpenseCategory" Label="Category" Variant="Variant.Outlined" @bind-Value="editModel.Category">
-                        @foreach (var category in Categories)
+                    <MudSelect T="int" Label="Category" Variant="Variant.Outlined" Value="editModel.CategoryId" ValueChanged="OnEditCategoryChangedAsync">
+                        @foreach (var category in activeCategories)
                         {
-                            <MudSelectItem T="ExpenseCategory" Value="@category">@category</MudSelectItem>
+                            <MudSelectItem T="int" Value="@category.Id">@category.Name</MudSelectItem>
                         }
                     </MudSelect>
                     <MudTextField T="string" Label="Notes" Variant="Variant.Outlined" Lines="3" @bind-value="editModel.Notes" />
@@ -44,6 +45,34 @@
                     </MudStack>
                 </MudStack>
             </MudPaper>
+
+            @if (isAdmin)
+            {
+                <MudPaper Class="pa-4 mt-3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Manage Categories (Admin)</MudText>
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <MudTextField T="string" Label="Category Name" Variant="Variant.Outlined" Value="newCategoryName" ValueChanged="OnNewCategoryNameChanged" />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddCategoryAsync">Add</MudButton>
+                    </MudStack>
+
+                    <MudTable Items="allCategories" Dense="true" Hover="true" Elevation="0" Class="mt-3">
+                        <HeaderContent>
+                            <MudTh>Name</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Name</MudTd>
+                            <MudTd>@(context.IsActive ? "Active" : "Inactive")</MudTd>
+                            <MudTd>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => ToggleCategoryStatusAsync(context.Id))">
+                                    @(context.IsActive ? "Deactivate" : "Activate")
+                                </MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            }
 
             <MudPaper Class="pa-4 mt-3">
                 <MudText Typo="Typo.h6">Monthly Report</MudText>
@@ -62,11 +91,11 @@
                         <MudTextField T="string" Label="Search" Variant="Variant.Outlined" Value="searchTerm" ValueChanged="OnSearchChangedAsync" Immediate="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudSelect T="string" Label="Category" Variant="Variant.Outlined" Value="selectedCategory" ValueChanged="OnCategoryChangedAsync">
-                            <MudSelectItem T="string" Value="@string.Empty">All</MudSelectItem>
-                            @foreach (var category in Categories)
+                        <MudSelect T="int?" Label="Category" Variant="Variant.Outlined" Value="selectedCategoryId" ValueChanged="OnCategoryFilterChangedAsync">
+                            <MudSelectItem T="int?" Value="@((int?)null)">All</MudSelectItem>
+                            @foreach (var category in activeCategories)
                             {
-                                <MudSelectItem T="string" Value="@category.ToString()">@category</MudSelectItem>
+                                <MudSelectItem T="int?" Value="@category.Id">@category.Name</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
@@ -101,7 +130,7 @@
                     <RowTemplate>
                         <MudTd>@context.ExpenseDate.ToString("yyyy-MM-dd")</MudTd>
                         <MudTd>@context.Title</MudTd>
-                        <MudTd>@context.Category</MudTd>
+                        <MudTd>@(context.Category?.Name ?? "-")</MudTd>
                         <MudTd>@context.Amount.ToString("C")</MudTd>
                         <MudTd>
                             <MudStack Row="true" Spacing="1">
@@ -120,19 +149,22 @@
 </MudContainer>
 
 @code {
-    private static readonly ExpenseCategory[] Categories = Enum.GetValues<ExpenseCategory>();
-
     private readonly List<Expense> expenses = [];
+    private readonly List<ExpenseCategory> activeCategories = [];
+    private readonly List<ExpenseCategory> allCategories = [];
+
     private List<Expense> filteredExpenses = [];
     private ExpenseEditModel editModel = ExpenseEditModel.CreateDefault();
 
     private bool isEditMode;
+    private bool isAdmin;
     private int? editingExpenseId;
     private string? userId;
     private string? errorMessage;
+    private string newCategoryName = string.Empty;
 
     private string searchTerm = string.Empty;
-    private string selectedCategory = string.Empty;
+    private int? selectedCategoryId;
     private int? selectedMonth = DateTime.Today.Month;
     private int? selectedYear = DateTime.Today.Year;
 
@@ -147,7 +179,10 @@
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var user = authState.User;
+
+        userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        isAdmin = user.IsInRole("Admin");
 
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -157,7 +192,7 @@
 
         var filterState = await FilterStateService.LoadAsync();
         searchTerm = filterState.SearchTerm ?? string.Empty;
-        selectedCategory = filterState.Category ?? string.Empty;
+        selectedCategoryId = int.TryParse(filterState.Category, out var categoryId) ? categoryId : null;
         selectedMonth = filterState.Month;
         selectedYear = filterState.Year;
 
@@ -171,7 +206,28 @@
             selectedYear = DateTime.Today.Year;
         }
 
+        await LoadCategoriesAsync();
         await LoadExpensesAsync();
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        activeCategories.Clear();
+        activeCategories.AddRange(await ExpenseCategoryRepository.GetAllAsync());
+
+        allCategories.Clear();
+        allCategories.AddRange(await ExpenseCategoryRepository.GetAllAsync(includeInactive: true));
+
+        if (!activeCategories.Any())
+        {
+            errorMessage = "No active categories available. Contact admin.";
+            return;
+        }
+
+        if (editModel.CategoryId <= 0 || activeCategories.All(x => x.Id != editModel.CategoryId))
+        {
+            editModel.CategoryId = activeCategories.First().Id;
+        }
     }
 
     private async Task LoadExpensesAsync()
@@ -196,44 +252,63 @@
             return;
         }
 
+        if (!activeCategories.Any())
+        {
+            errorMessage = "No active categories available. Contact admin.";
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(editModel.Title) || editModel.Amount <= 0)
         {
             errorMessage = "Title and amount are required.";
             return;
         }
 
-        if (isEditMode && editingExpenseId.HasValue)
+        if (activeCategories.All(x => x.Id != editModel.CategoryId))
         {
-            var existing = await ExpenseRepository.GetByIdAsync(editingExpenseId.Value, userId);
+            errorMessage = "Please select a valid category.";
+            return;
+        }
 
-            if (existing is null)
+        try
+        {
+            if (isEditMode && editingExpenseId.HasValue)
             {
-                errorMessage = "Expense not found.";
-                return;
+                var existing = await ExpenseRepository.GetByIdAsync(editingExpenseId.Value, userId);
+
+                if (existing is null)
+                {
+                    errorMessage = "Expense not found.";
+                    return;
+                }
+
+                existing.Title = editModel.Title.Trim();
+                existing.Amount = editModel.Amount;
+                existing.ExpenseDate = editModel.ExpenseDate?.Date ?? DateTime.Today;
+                existing.CategoryId = editModel.CategoryId;
+                existing.Notes = string.IsNullOrWhiteSpace(editModel.Notes) ? null : editModel.Notes.Trim();
+                await ExpenseRepository.UpdateAsync(existing);
+            }
+            else
+            {
+                await ExpenseRepository.AddAsync(new Expense
+                {
+                    UserId = userId,
+                    Title = editModel.Title.Trim(),
+                    Amount = editModel.Amount,
+                    ExpenseDate = editModel.ExpenseDate?.Date ?? DateTime.Today,
+                    CategoryId = editModel.CategoryId,
+                    Notes = string.IsNullOrWhiteSpace(editModel.Notes) ? null : editModel.Notes.Trim()
+                });
             }
 
-            existing.Title = editModel.Title.Trim();
-            existing.Amount = editModel.Amount;
-            existing.ExpenseDate = editModel.ExpenseDate?.Date ?? DateTime.Today;
-            existing.Category = editModel.Category;
-            existing.Notes = string.IsNullOrWhiteSpace(editModel.Notes) ? null : editModel.Notes.Trim();
-            await ExpenseRepository.UpdateAsync(existing);
+            CancelEdit();
+            await LoadExpensesAsync();
         }
-        else
+        catch (Exception ex)
         {
-            await ExpenseRepository.AddAsync(new Expense
-            {
-                UserId = userId,
-                Title = editModel.Title.Trim(),
-                Amount = editModel.Amount,
-                ExpenseDate = editModel.ExpenseDate?.Date ?? DateTime.Today,
-                Category = editModel.Category,
-                Notes = string.IsNullOrWhiteSpace(editModel.Notes) ? null : editModel.Notes.Trim()
-            });
+            errorMessage = $"Unable to save expense: {ex.Message}";
         }
-
-        CancelEdit();
-        await LoadExpensesAsync();
     }
 
     private void StartEdit(Expense expense)
@@ -245,7 +320,7 @@
             Title = expense.Title,
             Amount = expense.Amount,
             ExpenseDate = expense.ExpenseDate,
-            Category = expense.Category,
+            CategoryId = expense.CategoryId,
             Notes = expense.Notes
         };
     }
@@ -255,6 +330,11 @@
         isEditMode = false;
         editingExpenseId = null;
         editModel = ExpenseEditModel.CreateDefault();
+
+        if (activeCategories.Any())
+        {
+            editModel.CategoryId = activeCategories.First().Id;
+        }
     }
 
     private async Task DeleteExpenseAsync(int id)
@@ -264,8 +344,15 @@
             return;
         }
 
-        await ExpenseRepository.DeleteAsync(id, userId);
-        await LoadExpensesAsync();
+        try
+        {
+            await ExpenseRepository.DeleteAsync(id, userId);
+            await LoadExpensesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to delete expense: {ex.Message}";
+        }
     }
 
     private Task OnSearchChangedAsync(string value)
@@ -274,9 +361,9 @@
         return ApplyFiltersAsync();
     }
 
-    private Task OnCategoryChangedAsync(string value)
+    private Task OnCategoryFilterChangedAsync(int? value)
     {
-        selectedCategory = value ?? string.Empty;
+        selectedCategoryId = value;
         return ApplyFiltersAsync();
     }
 
@@ -292,13 +379,94 @@
         return ApplyFiltersAsync();
     }
 
+    private Task OnEditCategoryChangedAsync(int value)
+    {
+        editModel.CategoryId = value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnNewCategoryNameChanged(string value)
+    {
+        newCategoryName = value ?? string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private async Task AddCategoryAsync()
+    {
+        errorMessage = null;
+
+        if (!isAdmin)
+        {
+            errorMessage = "Only admin can manage categories.";
+            return;
+        }
+
+        var name = newCategoryName.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            errorMessage = "Category name is required.";
+            return;
+        }
+
+        var existing = await ExpenseCategoryRepository.GetByNameAsync(name);
+        if (existing is not null)
+        {
+            if (!existing.IsActive)
+            {
+                existing.IsActive = true;
+                await ExpenseCategoryRepository.UpdateAsync(existing);
+            }
+            else
+            {
+                errorMessage = "Category already exists.";
+                return;
+            }
+        }
+        else
+        {
+            await ExpenseCategoryRepository.AddAsync(new ExpenseCategory
+            {
+                Name = name,
+                IsActive = true
+            });
+        }
+
+        newCategoryName = string.Empty;
+        await LoadCategoriesAsync();
+        await ApplyFiltersAsync();
+    }
+
+    private async Task ToggleCategoryStatusAsync(int categoryId)
+    {
+        errorMessage = null;
+
+        if (!isAdmin)
+        {
+            errorMessage = "Only admin can manage categories.";
+            return;
+        }
+
+        var category = await ExpenseCategoryRepository.GetByIdAsync(categoryId);
+        if (category is null)
+        {
+            errorMessage = "Category not found.";
+            return;
+        }
+
+        category.IsActive = !category.IsActive;
+        await ExpenseCategoryRepository.UpdateAsync(category);
+
+        await LoadCategoriesAsync();
+        await ApplyFiltersAsync();
+    }
+
     private async Task ApplyFiltersAsync()
     {
         RebuildView();
         await FilterStateService.SaveAsync(new ExpenseFilterState
         {
             SearchTerm = searchTerm,
-            Category = selectedCategory,
+            Category = selectedCategoryId?.ToString(),
             Month = selectedMonth,
             Year = selectedYear
         });
@@ -313,9 +481,9 @@
             query = query.Where(x => x.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || (x.Notes != null && x.Notes.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
         }
 
-        if (!string.IsNullOrWhiteSpace(selectedCategory) && Enum.TryParse<ExpenseCategory>(selectedCategory, out var parsedCategory))
+        if (selectedCategoryId.HasValue)
         {
-            query = query.Where(x => x.Category == parsedCategory);
+            query = query.Where(x => x.CategoryId == selectedCategoryId.Value);
         }
 
         if (selectedMonth.HasValue)
@@ -334,13 +502,13 @@
 
     private void BuildReportAndChart(List<Expense> source)
     {
-        monthlyIncome = source.Where(x => x.Category == ExpenseCategory.Salary).Sum(x => x.Amount);
-        monthlyExpense = source.Where(x => x.Category != ExpenseCategory.Salary).Sum(x => x.Amount);
+        monthlyIncome = source.Where(x => string.Equals(x.Category?.Name, "Salary", StringComparison.OrdinalIgnoreCase)).Sum(x => x.Amount);
+        monthlyExpense = source.Where(x => !string.Equals(x.Category?.Name, "Salary", StringComparison.OrdinalIgnoreCase)).Sum(x => x.Amount);
         monthlyNet = monthlyIncome - monthlyExpense;
 
         var byCategory = source
-            .GroupBy(x => x.Category)
-            .Select(x => new { Category = x.Key.ToString(), Total = x.Sum(v => v.Amount) })
+            .GroupBy(x => x.Category?.Name ?? "Uncategorized")
+            .Select(x => new { Category = x.Key, Total = x.Sum(v => v.Amount) })
             .OrderByDescending(x => x.Total)
             .ToList();
 
@@ -357,7 +525,7 @@
             rows.Add(string.Join(',',
                 EscapeCsv(item.ExpenseDate.ToString("yyyy-MM-dd")),
                 EscapeCsv(item.Title),
-                EscapeCsv(item.Category.ToString()),
+                EscapeCsv(item.Category?.Name ?? string.Empty),
                 EscapeCsv(item.Amount.ToString("0.00")),
                 EscapeCsv(item.Notes ?? string.Empty)));
         }
@@ -381,7 +549,7 @@
         public string Title { get; set; } = string.Empty;
         public decimal Amount { get; set; } = 1;
         public DateTime? ExpenseDate { get; set; } = DateTime.Today;
-        public ExpenseCategory Category { get; set; } = ExpenseCategory.Food;
+        public int CategoryId { get; set; }
         public string? Notes { get; set; }
 
         public static ExpenseEditModel CreateDefault() => new();

@@ -1,0 +1,9 @@
+.auth-page {
+    min-height: 100vh;
+    background-color: #f7f8fa;
+}
+
+.auth-page main,
+.auth-page .content {
+    width: 100%;
+}

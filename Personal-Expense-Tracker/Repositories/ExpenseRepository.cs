@@ -9,6 +9,8 @@ public sealed class ExpenseRepository(ApplicationDbContext dbContext) : IExpense
     public async Task<List<Expense>> GetByUserAsync(string userId, CancellationToken cancellationToken = default)
     {
         return await dbContext.Expenses
+            .AsNoTracking()
+            .Include(x => x.Category)
             .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.ExpenseDate)
             .ThenByDescending(x => x.Id)
@@ -18,6 +20,7 @@ public sealed class ExpenseRepository(ApplicationDbContext dbContext) : IExpense
     public async Task<Expense?> GetByIdAsync(int id, string userId, CancellationToken cancellationToken = default)
     {
         return await dbContext.Expenses
+            .Include(x => x.Category)
             .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken);
     }
 
@@ -35,7 +38,8 @@ public sealed class ExpenseRepository(ApplicationDbContext dbContext) : IExpense
 
     public async Task DeleteAsync(int id, string userId, CancellationToken cancellationToken = default)
     {
-        var expense = await GetByIdAsync(id, userId, cancellationToken);
+        var expense = await dbContext.Expenses
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken);
 
         if (expense is null)
         {
@@ -44,5 +48,10 @@ public sealed class ExpenseRepository(ApplicationDbContext dbContext) : IExpense
 
         dbContext.Expenses.Remove(expense);
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<bool> HasAnyForUserAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Expenses.AnyAsync(x => x.UserId == userId, cancellationToken);
     }
 }

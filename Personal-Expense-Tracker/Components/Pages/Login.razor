@@ -1,4 +1,5 @@
 @page "/login"
+@layout AuthLayout
 @attribute [AllowAnonymous]
 @rendermode InteractiveServer
 @inject NavigationManager Navigation
@@ -19,6 +20,9 @@
             <MudTextField T="string" Label="Password" InputType="InputType.Password" Variant="Variant.Outlined" @bind-value="password" />
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="isSubmitting" OnClick="LoginAsync">Login</MudButton>
             <MudText Typo="Typo.body2">No account? <MudLink Href="/register">Register</MudLink></MudText>
+            <MudDivider Class="my-2" />
+            <MudText Typo="Typo.caption">Admin: admin@expense.local / Admin@123</MudText>
+            <MudText Typo="Typo.caption">User: user@expense.local / User@123</MudText>
         </MudStack>
     </MudPaper>
 </MudContainer>

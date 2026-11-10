@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Personal_Expense_Tracker.Data;
 
 namespace Personal_Expense_Tracker.Domain;
 
@@ -10,6 +12,9 @@ public sealed class Expense
     [MaxLength(450)]
     public string UserId { get; set; } = string.Empty;
 
+    [ForeignKey(nameof(UserId))]
+    public ApplicationUser? User { get; set; }
+
     [Required]
     [MaxLength(120)]
     public string Title { get; set; } = string.Empty;
@@ -19,8 +24,10 @@ public sealed class Expense
 
     public DateTime ExpenseDate { get; set; } = DateTime.UtcNow.Date;
 
-    [Required]
-    public ExpenseCategory Category { get; set; }
+    public int CategoryId { get; set; }
+
+    [ForeignKey(nameof(CategoryId))]
+    public ExpenseCategory? Category { get; set; }
 
     [MaxLength(500)]
     public string? Notes { get; set; }
