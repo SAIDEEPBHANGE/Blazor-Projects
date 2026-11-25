@@ -1,4 +1,5 @@
 # Blazor Learning Roadmap
+
 ### 5 Beginner-Friendly Projects (Zero to Expert)
 
 ---
@@ -6,9 +7,7 @@
 # 🚀 Blazor Learning Journey
 
 If you're starting from **absolute zero**, don't try to build a huge application immediately.
-
 Instead, build **small projects** that each teach one new concept.
-
 By the end of these 5 projects you'll understand:
 
 - Components
@@ -33,6 +32,7 @@ By the end of these 5 projects you'll understand:
 # Project 1 — Counter & Calculator
 
 ## Difficulty
+
 ⭐☆☆☆☆
 
 ## Goal
@@ -57,12 +57,10 @@ Learn the absolute basics of Blazor.
 - @onclick
 - @bind
 - if statements
-
-Example:
+  Example:
 
 ```
 Current Count: 0
-
 [ + ]
 [ - ]
 [ Reset ]
@@ -87,14 +85,11 @@ Build your first useful application.
 - Mark Complete
 - Filter Completed
 - Count Remaining Tasks
-
-Example
+  Example
 
 ```
 ☐ Learn Blazor
-
 ☑ Study Components
-
 ☐ Build Projects
 ```
 
@@ -123,16 +118,12 @@ Example
 - Search Student
 - Sort Students
 - Validation
-
-Student
+  Student
 
 ```
 Name
-
 Age
-
 Department
-
 Email
 ```
 
@@ -162,8 +153,7 @@ Email
 - Wind
 - Humidity
 - Icons
-
-Use a free Weather API.
+  Use a free Weather API.
 
 ## Learn
 
@@ -181,7 +171,6 @@ Use a free Weather API.
 ## Difficulty
 
 ⭐⭐⭐⭐⭐
-
 This project combines everything you've learned.
 
 ## Features
@@ -195,9 +184,7 @@ This project combines everything you've learned.
 - Edit
 - Delete
 - Export CSV
-
-Categories
-
+  Categories
 - Food
 - Travel
 - Shopping
@@ -239,25 +226,15 @@ Expense Tracker
 
 ```
 MyProject/
-
 │
-
 ├── Components/
-
 ├── Pages/
-
 ├── Models/
-
 ├── Services/
-
 ├── Data/
-
 ├── wwwroot/
-
 ├── App.razor
-
 ├── Program.cs
-
 └── README.md
 ```
 
@@ -316,39 +293,30 @@ MyProject/
 # Bonus Challenges
 
 After every project, improve it.
-
 Examples:
-
 ✅ Add Dark Mode
-
 ✅ Add Search
-
 ✅ Add Sorting
-
 ✅ Add Pagination
-
 ✅ Add Loading Animation
-
 ✅ Add Toast Notifications
-
 ✅ Save Data
-
 ✅ Mobile Responsive UI
 
 ---
 
 # Recommended Technologies
 
-| Skill | Technology |
-|---------|------------|
-| Frontend | Blazor |
-| Backend | ASP.NET Core |
-| Database | SQLite |
-| ORM | Entity Framework Core |
-| API | REST API |
-| IDE | Visual Studio 2022 / VS Code |
-| Version Control | Git |
-| Hosting | Azure / Render |
+| Skill           | Technology                   |
+| --------------- | ---------------------------- |
+| Frontend        | Blazor                       |
+| Backend         | ASP.NET Core                 |
+| Database        | SQLite                       |
+| ORM             | Entity Framework Core        |
+| API             | REST API                     |
+| IDE             | Visual Studio 2022 / VS Code |
+| Version Control | Git                          |
+| Hosting         | Azure / Render               |
 
 ---
 
@@ -369,14 +337,14 @@ By completing all five projects, you'll be able to build:
 
 # Suggested Learning Timeline
 
-| Week | Focus |
-|------|-------|
-| 1 | Blazor Basics + Counter |
-| 2 | Todo App |
-| 3 | Student Management |
-| 4 | Weather API |
-| 5–6 | Expense Tracker |
-| 7+ | Authentication, EF Core, Advanced Blazor |
+| Week | Focus                                    |
+| ---- | ---------------------------------------- |
+| 1    | Blazor Basics + Counter                  |
+| 2    | Todo App                                 |
+| 3    | Student Management                       |
+| 4    | Weather API                              |
+| 5–6  | Expense Tracker                          |
+| 7+   | Authentication, EF Core, Advanced Blazor |
 
 ---
 

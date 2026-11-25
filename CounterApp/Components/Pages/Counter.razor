@@ -1,5 +1,6 @@
 ﻿@page "/"
 @rendermode InteractiveServer
+@implements IDisposable
 <PageTitle>Counter</PageTitle>
 <div class="container py-5">
     <div class="row justify-content-center">
@@ -57,6 +58,10 @@
                             </button>
                         </div>
                     </div>
+                    @if (!string.IsNullOrEmpty(validationMessage))
+                    {
+                        <div class="alert alert-warning mt-3 mb-0" role="alert">@validationMessage</div>
+                    }
                 </div>
             </div>
         </div>
@@ -65,12 +70,25 @@
 @code {
     private int currentCount = 0;
     private int stepSize = 1;
+    private string validationMessage = string.Empty;
     private void IncrementCount()
     {
-        currentCount += stepSize;
+        if (stepSize < 1)
+        {
+            validationMessage = "Step increment must be at least 1.";
+            return;
+        }
+        validationMessage = string.Empty;
+        currentCount = checked(currentCount + stepSize);
     }
     private void DecrementCount()
     {
+        if (stepSize < 1)
+        {
+            validationMessage = "Step increment must be at least 1.";
+            return;
+        }
+        validationMessage = string.Empty;
         currentCount = Math.Max(currentCount - stepSize, 0);
     }
     private void ResetCount()

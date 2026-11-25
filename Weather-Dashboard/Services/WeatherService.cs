@@ -40,6 +40,10 @@ public sealed class WeatherService(HttpClient httpClient)
         {
             return WeatherLookupResult.Failure("Unable to reach the weather service right now.");
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return WeatherLookupResult.Failure("The weather request was cancelled.");
+        }
         catch (TaskCanceledException)
         {
             return WeatherLookupResult.Failure("The weather request timed out.");

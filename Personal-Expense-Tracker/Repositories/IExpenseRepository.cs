@@ -1,7 +1,5 @@
 using Personal_Expense_Tracker.Domain;
-
 namespace Personal_Expense_Tracker.Repositories;
-
 public interface IExpenseRepository
 {
     Task<List<Expense>> GetByUserAsync(string userId, CancellationToken cancellationToken = default);

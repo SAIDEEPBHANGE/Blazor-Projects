@@ -87,7 +87,14 @@
         <PagerContent>
             <MudTablePager PageSizeOptions="pageSizeOptions" />
         </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No students match the current filters.</MudText>
+        </NoRecordsContent>
     </MudTable>
+    @if (!string.IsNullOrWhiteSpace(saveMessage))
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">@saveMessage</MudAlert>
+    }
 </MudContainer>
 @code {
     private StudentDataModel studentDataModel = new();
@@ -98,6 +105,7 @@
     private readonly int[] pageSizeOptions = [5, 10, 25, 100];
     private int pageSize = 5;
     private string searchText = string.Empty;
+    private string saveMessage = string.Empty;
     private bool showForm = false;
     private bool isEdit = false;
     private StudentInfo studentModel = new();
@@ -133,6 +141,15 @@
     }
     private void SaveStudent()
     {
+        saveMessage = string.Empty;
+        var duplicateExists = studentDataModel.Students.Any(student =>
+            student.studentId != studentModel.studentId &&
+            student.Email.Equals(studentModel.Email, StringComparison.OrdinalIgnoreCase));
+        if (duplicateExists)
+        {
+            saveMessage = "A student with this email already exists.";
+            return;
+        }
         if (isEdit)
         {
             var existingStudent = studentDataModel.Students.FirstOrDefault(

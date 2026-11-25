@@ -3,18 +3,15 @@
 @attribute [AllowAnonymous]
 @rendermode InteractiveServer
 @inject NavigationManager Navigation
-
+@inject IJSRuntime JS
 <PageTitle>Login</PageTitle>
-
 <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-10">
     <MudPaper Class="pa-6">
         <MudText Typo="Typo.h5" Class="mb-4">Sign in</MudText>
-
         @if (!string.IsNullOrWhiteSpace(errorMessage))
         {
             <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@errorMessage</MudAlert>
         }
-
         <MudStack Spacing="2">
             <MudTextField T="string" Label="Email" Variant="Variant.Outlined" @bind-value="email" />
             <MudTextField T="string" Label="Password" InputType="InputType.Password" Variant="Variant.Outlined" @bind-value="password" />
@@ -26,40 +23,33 @@
         </MudStack>
     </MudPaper>
 </MudContainer>
-
 @code {
     private string email = string.Empty;
     private string password = string.Empty;
     private bool isSubmitting;
     private string? errorMessage;
-
     private async Task LoginAsync()
     {
         errorMessage = null;
-
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
             errorMessage = "Email and password are required.";
             return;
         }
-
         isSubmitting = true;
-
         try
         {
-            using var client = new HttpClient { BaseAddress = new Uri(Navigation.BaseUri) };
-            var response = await client.PostAsJsonAsync("auth/login?useCookies=true", new
+            var isSuccess = await JS.InvokeAsync<bool>("expenseTrackerAuth.postJson", "/auth/login?useCookies=true", new
             {
                 Email = email.Trim(),
                 Password = password
             });
-
-            if (response.IsSuccessStatusCode)
+            if (isSuccess)
             {
-                Navigation.NavigateTo("/", forceLoad: true);
+                var returnUrl = GetReturnUrlOrDefault();
+                Navigation.NavigateTo(returnUrl, forceLoad: true);
                 return;
             }
-
             errorMessage = "Invalid login attempt.";
         }
         catch
@@ -70,5 +60,20 @@
         {
             isSubmitting = false;
         }
+    }
+    private string GetReturnUrlOrDefault()
+    {
+        var absoluteUri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(absoluteUri.Query);
+        if (!query.TryGetValue("ReturnUrl", out var returnUrl))
+        {
+            return "/";
+        }
+        var target = returnUrl.ToString();
+        if (string.IsNullOrWhiteSpace(target) || !target.StartsWith('/'))
+        {
+            return "/";
+        }
+        return target;
     }
 }

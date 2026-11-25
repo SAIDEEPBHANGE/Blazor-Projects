@@ -6,8 +6,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddMudServices();
-builder.Services.AddScoped(_ => new HttpClient());
-builder.Services.AddScoped<WeatherService>();
+builder.Services.AddHttpClient<WeatherService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
 var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

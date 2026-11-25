@@ -1,13 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Personal_Expense_Tracker.Data;
 using Personal_Expense_Tracker.Domain;
-
 namespace Personal_Expense_Tracker.Repositories;
-
-public sealed class ExpenseRepository(ApplicationDbContext dbContext) : IExpenseRepository
+public sealed class ExpenseRepository(IDbContextFactory<ApplicationDbContext> dbContextFactory) : IExpenseRepository
 {
     public async Task<List<Expense>> GetByUserAsync(string userId, CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await dbContext.Expenses
             .AsNoTracking()
             .Include(x => x.Category)
@@ -16,42 +15,40 @@ public sealed class ExpenseRepository(ApplicationDbContext dbContext) : IExpense
             .ThenByDescending(x => x.Id)
             .ToListAsync(cancellationToken);
     }
-
     public async Task<Expense?> GetByIdAsync(int id, string userId, CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await dbContext.Expenses
             .Include(x => x.Category)
             .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken);
     }
-
     public async Task AddAsync(Expense expense, CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         dbContext.Expenses.Add(expense);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
-
     public async Task UpdateAsync(Expense expense, CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         dbContext.Expenses.Update(expense);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
-
     public async Task DeleteAsync(int id, string userId, CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var expense = await dbContext.Expenses
             .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken);
-
         if (expense is null)
         {
             return;
         }
-
         dbContext.Expenses.Remove(expense);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
-
     public async Task<bool> HasAnyForUserAsync(string userId, CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await dbContext.Expenses.AnyAsync(x => x.UserId == userId, cancellationToken);
     }
 }

@@ -9,7 +9,7 @@
             </tr>
         </thead>
         <tbody>
-            @if (todoItems.tasks.Count == 0)
+            @if (filteredTodoItems.tasks.Count == 0)
             {
                 <tr>
                     <td colspan="3" class="text-center text-muted py-4">
@@ -19,10 +19,10 @@
             }
             else
             {
-                @for (int i = 0; i < todoItems.tasks.Count; i++)
+                @for (int i = 0; i < filteredTodoItems.tasks.Count; i++)
                 {
-                    var task = todoItems.tasks[i];
-                    <tr>
+                    var task = filteredTodoItems.tasks[i];
+                    <tr @key="task.id">
                         <td>@(i + 1)</td>
                         <td>
                             @if (task.isEdit)
@@ -79,29 +79,29 @@
     [Parameter]
     public ToDoTasks todoItems { get; set; } = new();
     [Parameter]
-    public ToDoTaskSummary toDoTaskSummary { get; set; } = new();
+    public ToDoTasks filteredTodoItems { get; set; } = new();
+    [Parameter]
+    public EventCallback OnTasksChanged { get; set; }
     private string originalTaskText = string.Empty;
-    public Task HandleMarkAsCompleted(Guid taskId)
+    public async Task HandleMarkAsCompleted(Guid taskId)
     {
         var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
         if (task != null)
         {
             task.isDone = true;
         }
-        UpdateSummary();
-        return Task.CompletedTask;
+        await OnTasksChanged.InvokeAsync();
     }
-    public Task HandleDeleteTask(Guid taskId)
+    public async Task HandleDeleteTask(Guid taskId)
     {
         var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
         if (task != null)
         {
             todoItems.tasks.Remove(task);
         }
-        UpdateSummary();
-        return Task.CompletedTask;
+        await OnTasksChanged.InvokeAsync();
     }
-    public Task HandleEditTask(Guid taskId)
+    public async Task HandleEditTask(Guid taskId)
     {
         var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
         if (task != null)
@@ -109,9 +109,9 @@
             originalTaskText = task.text;
             task.isEdit = true;
         }
-        return Task.CompletedTask;
+        await OnTasksChanged.InvokeAsync();
     }
-    public Task HandleEditTaskText(Guid taskId)
+    public async Task HandleEditTaskText(Guid taskId)
     {
         var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
         if (task != null)
@@ -123,9 +123,9 @@
             }
             task.isEdit = false;
         }
-        return Task.CompletedTask;
+        await OnTasksChanged.InvokeAsync();
     }
-    public Task HandleCancelEditTask(Guid taskId)
+    public async Task HandleCancelEditTask(Guid taskId)
     {
         var task = todoItems.tasks.FirstOrDefault(t => t.id == taskId);
         if (task != null)
@@ -133,13 +133,6 @@
             task.text = originalTaskText;
             task.isEdit = false;
         }
-        return Task.CompletedTask;
-    }
-    private void UpdateSummary()
-    {
-        toDoTaskSummary.Total = todoItems.tasks.Count;
-        toDoTaskSummary.Completed = todoItems.tasks.Count(t => t.isDone);
-        toDoTaskSummary.Pending =
-            toDoTaskSummary.Total - toDoTaskSummary.Completed;
+        await OnTasksChanged.InvokeAsync();
     }
 }

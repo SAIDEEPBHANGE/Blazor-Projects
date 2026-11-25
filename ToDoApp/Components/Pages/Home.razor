@@ -18,7 +18,21 @@
                         </div>
                     }
                     <InputToDo @bind-todoText="todoText" addTask="@addTask" clearTask="@clearTask" />
-                    <ToDoTable todoItems="@todoItems" toDoTaskSummary="@toDoTaskSummary" />
+                    <div class="row g-2 mt-3">
+                        <div class="col-12 col-md-8">
+                            <input type="search" class="form-control" placeholder="Search tasks..."
+                                   @bind="searchText" @bind:event="oninput" />
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <select class="form-select" @bind="statusFilter">
+                                <option value="All">All tasks</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+                    <ToDoTable todoItems="@todoItems" filteredTodoItems="@FilteredTasks"
+                               OnTasksChanged="RefreshTaskState" />
                 </div>
                 <div class="card-footer">
                     <div class="row text-center">
@@ -43,8 +57,29 @@
 @code {
     private string todoText = string.Empty;
     private string errorMessage = string.Empty;
+    private string searchText = string.Empty;
+    private string statusFilter = "All";
     private ToDoTasks todoItems = new ToDoTasks();
     private ToDoTaskSummary toDoTaskSummary = new ToDoTaskSummary();
+    private ToDoTasks FilteredTasks
+    {
+        get
+        {
+            var filtered = todoItems.tasks.Where(task =>
+                (string.IsNullOrWhiteSpace(searchText) ||
+                 task.text.Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
+                (statusFilter == "All" ||
+                 (statusFilter == "Completed" && task.isDone) ||
+                 (statusFilter == "Pending" && !task.isDone)));
+            return new ToDoTasks { Tasks = filtered.ToList() };
+        }
+    }
+    private void RefreshTaskState()
+    {
+        toDoTaskSummary.Total = todoItems.tasks.Count;
+        toDoTaskSummary.Completed = todoItems.tasks.Count(task => task.isDone);
+        toDoTaskSummary.Pending = toDoTaskSummary.Total - toDoTaskSummary.Completed;
+    }
     private void addTask()
     {
         errorMessage = string.Empty;
